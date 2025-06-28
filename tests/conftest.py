@@ -1,7 +1,9 @@
 """Pytest configuration and minimal shared fixtures."""
-import pytest
+
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+
+import pytest
 
 from src.regulations.models import ParserConfig
 
@@ -15,7 +17,7 @@ def default_config():
 @pytest.fixture
 def temp_pdf_file():
     """Create a minimal temporary PDF file for testing."""
-    with NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+    with NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
         # Minimal PDF with CONC content for validation
         pdf_content = b"""%PDF-1.4
 1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
@@ -27,18 +29,18 @@ endstream
 endobj
 xref
 0 5
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000206 00000 n 
+0000000000 65535 f
+0000000009 00000 n
+0000000058 00000 n
+0000000115 00000 n
+0000000206 00000 n
 trailer<</Size 5/Root 1 0 R>>
 startxref
 299
 %%EOF"""
         tmp.write(pdf_content)
         tmp.flush()
-        
+
         yield Path(tmp.name)
         Path(tmp.name).unlink(missing_ok=True)
 
