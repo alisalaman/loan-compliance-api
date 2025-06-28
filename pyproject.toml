@@ -1,0 +1,77 @@
+# ===================================================================================
+# pyproject.toml for the FinTrust Compliance Solution
+# Workflow: uv (for venv and package installation)
+# Standards: PEP 621 for project metadata and dependencies
+# ===================================================================================
+
+[build-system]
+# Required section for build tools to understand the project
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+# Core project metadata (PEP 621)
+name = "fintrust_compliance_solution"
+version = "0.1.0"
+description = "AI solution for regulatory compliance and risk assessment in loan applications."
+authors = [
+    { name = "Ali Salaman", email = "alisalaman@gmail.com" },
+]
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Proprietary" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+]
+
+# === PROJECT DEPENDENCIES ===
+# These are the packages your application needs to run in production.
+# `uv pip install .` will install these.
+dependencies = [
+    "cohere==5.15.0",
+    "pydantic==2.11.7",
+    "PyMuPDF==1.26.1",
+    # Add other runtime dependencies here, e.g., a web framework like FastAPI
+    # "fastapi==0.111.0",
+    # "uvicorn[standard]==0.29.0",
+]
+
+# === DEVELOPMENT DEPENDENCIES ===
+# These are packages only needed for development (linting, formatting, testing).
+# `uv pip install .[dev]` will install these.
+[project.optional-dependencies]
+dev = [
+    "black==25.1.0",
+    "ruff==0.12.1",
+    "mypy==1.16.1",
+    "pre-commit==4.2.0",
+    # Add testing libraries here
+    "pytest==8.4.1",
+]
+
+
+# ===================================================================================
+# Tool Configurations
+# ===================================================================================
+
+[tool.ruff]
+line-length = 88
+select = ["F", "E", "W", "I", "N", "UP", "B"] # F=pyflakes, E/W=pycodestyle, I=isort, etc.
+# ignore = ["E501"] # line-too-long is handled by black
+
+[tool.ruff.lint.isort]
+force-wrap-aliases = true
+combine-as-imports = true
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+disallow_untyped_defs = true
