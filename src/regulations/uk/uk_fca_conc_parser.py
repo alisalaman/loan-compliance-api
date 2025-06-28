@@ -111,6 +111,72 @@ def find_section_text_and_pages(
     return {"text": "\n".join(section_text_parts), "pages": section_pages}
 
 
+def find_subsection_name(clause_id: str, pages_content: List[Dict], section_pages: List[int]) -> str:
+    """Find the subsection name for a given clause by looking for section headers."""
+    # First try to find the nearest subsection header before this clause
+    current_subsection = ""
+    
+    # Look through the pages to find subsection headers
+    for page_info in pages_content:
+        if page_info["page_number"] in section_pages:
+            text = page_info["text"]
+            lines = text.split('\n')
+            
+            for i, line in enumerate(lines):
+                line = line.strip()
+                
+                # Check if this line contains our clause - if so, return the current subsection
+                if clause_id in line and len(line) < 200:
+                    return current_subsection
+                
+                # Check if this is a subsection header (standalone title line)
+                # These are usually short, capitalized, and don't start with numbers
+                if (len(line) > 3 and len(line) < 50 and 
+                    line[0].isupper() and 
+                    not line[0].isdigit() and
+                    not 'www.' in line and
+                    not 'Release' in line and
+                    not 'CONC' in line and
+                    '.' not in line[:10] and  # No clause numbers at start
+                    not line.startswith('(') and  # Not a sub-point
+                    line.count(' ') < 8):  # Not too many words
+                    
+                    # Clean up the potential subsection name
+                    cleaned = re.sub(r'^[.\s]+|[.\s]+$', '', line)  # Remove leading/trailing dots/spaces
+                    if cleaned and len(cleaned) > 3:
+                        current_subsection = cleaned
+    
+    return current_subsection
+
+
+def find_main_section_name(clause_id: str, pages_content: List[Dict], section_pages: List[int]) -> str:
+    """Find the main section name for a given clause (e.g., 'Application' for 7.1.x clauses)."""
+    # Extract the main section (e.g., "7.1" from "7.1.2")
+    parts = clause_id.split('.')
+    if len(parts) >= 2:
+        main_section = '.'.join(parts[:2])  # e.g., "7.1", "5.2A"
+    else:
+        return ""
+    
+    # Look for main section headers like "7.1 Application"
+    for page_info in pages_content:
+        if page_info["page_number"] in section_pages:
+            text = page_info["text"]
+            lines = text.split('\n')
+            
+            for line in lines:
+                line = line.strip()
+                if line.startswith(main_section + " "):
+                    title = line[len(main_section):].strip()
+                    # Clean up common patterns
+                    title = re.sub(r'^\s*[.]{3,}.*', '', title)  # Remove dots
+                    title = re.sub(r'\s+', ' ', title)  # Normalize spaces
+                    if len(title) > 2 and len(title) < 100 and not title.startswith('www'):
+                        return title
+    
+    return ""
+
+
 def extract_clauses_from_section_text(
     section_text: str,
     section_number: str,
@@ -160,10 +226,16 @@ def extract_clauses_from_section_text(
                     page_number = p_num
                     break
 
+        # Find the main section name and subsection name for this clause
+        main_section_name = find_main_section_name(clause_id, pages_content, section_pages)
+        subsection_name = find_subsection_name(clause_id, pages_content, section_pages)
+
         clauses.append(
             {
                 "section": section_number,
                 "clause_id": f"{clause_id} {clause_type}",
+                "main_section_name": main_section_name,
+                "subsection_name": subsection_name,
                 "content": content,
                 "page_number": page_number,
             }
@@ -172,7 +244,7 @@ def extract_clauses_from_section_text(
 
 
 def main():
-    pdf_path = Path(__file__).parent.parent.parent / "CONC.pdf"
+    pdf_path = Path(__file__).parent.parent.parent.parent / "CONC.pdf"
     output_path = Path(__file__).parent / "extracted_regulations_plumber.json"
     all_extracted_clauses = []
 
