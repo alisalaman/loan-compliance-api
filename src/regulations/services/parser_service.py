@@ -1,11 +1,9 @@
 import logging
-from pathlib import Path
-from typing import Optional, Dict, List, Tuple
 from datetime import datetime
+from pathlib import Path
 
-from ..parsers.factory import ParserFactory
 from ..models import ParsedDocument, ParserConfig
-
+from ..parsers.factory import ParserFactory
 
 logger = logging.getLogger(__name__)
 
@@ -13,25 +11,25 @@ logger = logging.getLogger(__name__)
 class RegulationParserService:
     """Service layer for regulation parsing operations."""
 
-    def __init__(self, config: Optional[ParserConfig] = None):
+    def __init__(self, config: ParserConfig | None = None):
         """Initialize the parser service with optional configuration.
 
         Args:
             config: Optional parser configuration
         """
         self.config = config or ParserConfig()
-        self._parse_history: List[Dict] = []
+        self._parse_history: list[dict] = []
 
     def parse_document(
         self,
         jurisdiction: str,
-        document_type: Optional[str] = None,
+        document_type: str | None = None,
     ) -> ParsedDocument:
         """Parse a regulation document.
 
         Args:
             jurisdiction: Jurisdiction identifier (e.g., 'uk', 'eu', 'us')
-            document_type: Optional document type identifier (e.g., 'FCA_CONC'). 
+            document_type: Optional document type identifier (e.g., 'FCA_CONC').
                           If not provided, uses the first available parser for the jurisdiction.
 
         Returns:
@@ -46,21 +44,29 @@ class RegulationParserService:
         try:
             # Determine document type if not provided
             if document_type is None:
-                available_types = ParserFactory.get_supported_types_for_jurisdiction(jurisdiction)
+                available_types = ParserFactory.get_supported_types_for_jurisdiction(
+                    jurisdiction
+                )
                 if not available_types:
-                    raise ValueError(f"No parsers available for jurisdiction: {jurisdiction}")
+                    raise ValueError(
+                        f"No parsers available for jurisdiction: {jurisdiction}"
+                    )
                 document_type = available_types[0]  # Use first available
-                logger.info(f"Auto-selected document type: {document_type} for jurisdiction: {jurisdiction}")
+                logger.info(
+                    f"Auto-selected document type: {document_type} for jurisdiction: {jurisdiction}"
+                )
 
             # Create parser for the specified jurisdiction and document type
-            parser = ParserFactory.create_parser(jurisdiction, document_type, self.config)
+            parser = ParserFactory.create_parser(
+                jurisdiction, document_type, self.config
+            )
             detected_jurisdiction = jurisdiction
             detected_document_type = document_type
             logger.info(f"Using parser: {jurisdiction}:{document_type}")
 
             # Get the file path from the parser configuration
             file_path = parser.get_file_path()
-            
+
             # Validate file exists
             if not file_path.exists():
                 raise FileNotFoundError(f"Regulation file not found: {file_path}")
@@ -98,9 +104,11 @@ class RegulationParserService:
 
             # Try to get file path if available, otherwise use placeholder
             try:
-                file_path_str = str(parser.get_file_path()) if 'parser' in locals() else 'unknown'
-            except:
-                file_path_str = 'unknown'
+                file_path_str = (
+                    str(parser.get_file_path()) if "parser" in locals() else "unknown"
+                )
+            except Exception:
+                file_path_str = "unknown"
 
             # Log the failed operation
             self._log_parse_operation(
@@ -116,10 +124,14 @@ class RegulationParserService:
                 }
             )
 
-            logger.error(f"Failed to parse document for {jurisdiction}:{document_type}: {str(e)}")
-            raise RuntimeError(f"Failed to parse document for {jurisdiction}:{document_type}: {str(e)}") from e
+            logger.error(
+                f"Failed to parse document for {jurisdiction}:{document_type}: {str(e)}"
+            )
+            raise RuntimeError(
+                f"Failed to parse document for {jurisdiction}:{document_type}: {str(e)}"
+            ) from e
 
-    def get_supported_formats(self) -> Dict[str, List[str]]:
+    def get_supported_formats(self) -> dict[str, list[str]]:
         """Get list of supported document formats organized by jurisdiction.
 
         Returns:
@@ -127,7 +139,7 @@ class RegulationParserService:
         """
         return ParserFactory.get_all_supported_combinations()
 
-    def get_supported_jurisdictions(self) -> List[str]:
+    def get_supported_jurisdictions(self) -> list[str]:
         """Get list of supported jurisdictions.
 
         Returns:
@@ -135,7 +147,7 @@ class RegulationParserService:
         """
         return ParserFactory.get_supported_jurisdictions()
 
-    def get_supported_types_for_jurisdiction(self, jurisdiction: str) -> List[str]:
+    def get_supported_types_for_jurisdiction(self, jurisdiction: str) -> list[str]:
         """Get supported document types for a specific jurisdiction.
 
         Args:
@@ -149,9 +161,9 @@ class RegulationParserService:
     def validate_document(
         self,
         file_path: Path,
-        jurisdiction: Optional[str] = None,
-        document_type: Optional[str] = None,
-    ) -> Tuple[bool, Optional[str], Optional[str]]:
+        jurisdiction: str | None = None,
+        document_type: str | None = None,
+    ) -> tuple[bool, str | None, str | None]:
         """Validate if a document can be parsed.
 
         Args:
@@ -183,7 +195,7 @@ class RegulationParserService:
         except Exception:
             return False, None, None
 
-    def get_parser_info(self) -> Dict:
+    def get_parser_info(self) -> dict:
         """Get information about all available parsers.
 
         Returns:
@@ -191,7 +203,7 @@ class RegulationParserService:
         """
         return ParserFactory.get_parser_info()
 
-    def get_parse_history(self, limit: Optional[int] = None) -> List[Dict]:
+    def get_parse_history(self, limit: int | None = None) -> list[dict]:
         """Get history of parsing operations.
 
         Args:
@@ -210,7 +222,7 @@ class RegulationParserService:
         self._parse_history.clear()
         logger.info("Parse history cleared")
 
-    def _log_parse_operation(self, operation_info: Dict) -> None:
+    def _log_parse_operation(self, operation_info: dict) -> None:
         """Log a parsing operation to the internal history.
 
         Args:

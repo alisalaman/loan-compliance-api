@@ -1,8 +1,8 @@
-import pdfplumber
-import re
 import json
+import re
 from pathlib import Path
-from typing import List, Dict, Optional
+
+import pdfplumber
 
 SECTIONS_TO_EXTRACT = {
     "5.2A": "Creditworthiness assessment",
@@ -11,7 +11,7 @@ SECTIONS_TO_EXTRACT = {
 }
 
 
-def get_pdf_text_with_pages(pdf_path: Path, start_page: int = 40) -> List[Dict]:
+def get_pdf_text_with_pages(pdf_path: Path, start_page: int = 40) -> list[dict]:
     """Extracts text from each page of a PDF and returns a list of dictionaries,
     where each dictionary contains the page number and the text of that page.
     Skips title pages and table of contents by starting from start_page."""
@@ -34,8 +34,8 @@ def get_pdf_text_with_pages(pdf_path: Path, start_page: int = 40) -> List[Dict]:
 
 
 def find_section_text_and_pages(
-    pages_content: List[Dict], section_number: str, section_title: str
-) -> Optional[Dict]:
+    pages_content: list[dict], section_number: str, section_title: str
+) -> dict | None:
     """Finds the full text of a section and the pages it spans."""
     section_text_parts = []
     section_pages = []
@@ -58,7 +58,7 @@ def find_section_text_and_pages(
         r"^\s*(\d{1,2}(?:\.\d{1,2}[A-Z]?)?)\s+[A-Z][a-zA-Z\s]{10,}", re.MULTILINE
     )
 
-    for i, page in enumerate(pages_content):
+    for _i, page in enumerate(pages_content):
         text = page["text"]
         if not text:  # Skip empty pages
             continue
@@ -112,7 +112,7 @@ def find_section_text_and_pages(
 
 
 def find_subsection_name(
-    clause_id: str, pages_content: List[Dict], section_pages: List[int]
+    clause_id: str, pages_content: list[dict], section_pages: list[int]
 ) -> str:
     """Find the subsection name for a given clause by looking for section headers."""
     # First try to find the nearest subsection header before this clause
@@ -124,7 +124,7 @@ def find_subsection_name(
             text = page_info["text"]
             lines = text.split("\n")
 
-            for i, line in enumerate(lines):
+            for _i, line in enumerate(lines):
                 line = line.strip()
 
                 # Check if this line contains our clause - if so, return the current subsection
@@ -138,9 +138,9 @@ def find_subsection_name(
                     and len(line) < 50
                     and line[0].isupper()
                     and not line[0].isdigit()
-                    and not "www." in line
-                    and not "Release" in line
-                    and not "CONC" in line
+                    and "www." not in line
+                    and "Release" not in line
+                    and "CONC" not in line
                     and "." not in line[:10]  # No clause numbers at start
                     and not line.startswith("(")  # Not a sub-point
                     and line.count(" ") < 8
@@ -157,7 +157,7 @@ def find_subsection_name(
 
 
 def find_main_section_name(
-    clause_id: str, pages_content: List[Dict], section_pages: List[int]
+    clause_id: str, pages_content: list[dict], section_pages: list[int]
 ) -> str:
     """Find the main section name for a given clause (e.g., 'Application' for 7.1.x clauses)."""
     # Extract the main section (e.g., "7.1" from "7.1.2")
@@ -193,9 +193,9 @@ def find_main_section_name(
 def extract_clauses_from_section_text(
     section_text: str,
     section_number: str,
-    section_pages: List[int],
-    pages_content: List[Dict],
-) -> List[Dict]:
+    section_pages: list[int],
+    pages_content: list[dict],
+) -> list[dict]:
     """Extracts clauses from a section's text and assigns page numbers."""
     clauses = []
 

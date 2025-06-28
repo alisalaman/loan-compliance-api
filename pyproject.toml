@@ -46,14 +46,30 @@ dependencies = [
 # `uv pip install .[dev]` will install these.
 [project.optional-dependencies]
 dev = [
+    # Code formatting and linting
     "black==25.1.0",
     "ruff==0.12.1",
     "mypy==1.16.1",
-    "pre-commit==4.2.0",
-    # Add testing libraries here
+    # Testing
     "pytest==8.4.1",
+    "pytest-cov==6.1.0",
+    "pytest-xdist>=3.6.1,<4.0.0",  # parallel test execution
+    # Security scanning
+    "bandit[toml]==1.8.0",
+    # "safety==3.2.11",  # Temporarily disabled due to pydantic version conflict
+    # Pre-commit hooks
+    "pre-commit==4.2.0",
 ]
 
+# ===================================================================================
+# Scripts
+# ===================================================================================
+[project.scripts]
+lint = "scripts:lint"
+format = "scripts:format_code"
+test = "scripts:run_tests"
+security = "scripts:check_security"
+check-all = "scripts:check_all"
 
 # ===================================================================================
 # Tool Configurations
@@ -61,8 +77,10 @@ dev = [
 
 [tool.ruff]
 line-length = 88
+
+[tool.ruff.lint]
 select = ["F", "E", "W", "I", "N", "UP", "B"] # F=pyflakes, E/W=pycodestyle, I=isort, etc.
-# ignore = ["E501"] # line-too-long is handled by black
+ignore = ["E501"] # line-too-long is handled by black
 
 [tool.ruff.lint.isort]
 force-wrap-aliases = true
@@ -73,8 +91,57 @@ line-length = 88
 target-version = ['py311']
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true
 disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+]
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+]
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__init__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+show_missing = true
+skip_covered = false
+
+[tool.bandit]
+exclude_dirs = ["tests", "build", "dist"]
+skips = ["B101", "B601"]
