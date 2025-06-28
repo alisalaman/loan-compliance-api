@@ -72,7 +72,7 @@ class ParserFactory:
             )
 
         parser_class = jurisdiction_parsers[document_type]
-        return parser_class(config)
+        return parser_class(config or ParserConfig.default())
 
     @classmethod
     def get_parser_for_file(
@@ -103,7 +103,7 @@ class ParserFactory:
                 continue
 
             for doc_type, parser_class in cls._parsers[jur].items():
-                parser = parser_class(config)
+                parser = parser_class(config or ParserConfig.default())
                 if parser.validate_document(file_path):
                     return parser, jur, doc_type
 
@@ -186,12 +186,12 @@ class ParserFactory:
         Returns:
             Nested dictionary with jurisdiction -> document_type -> parser_info
         """
-        info = {}
+        info: dict[str, dict[str, dict]] = {}
         for jurisdiction, parsers in cls._parsers.items():
             info[jurisdiction] = {}
             for doc_type, parser_class in parsers.items():
                 # Create a temporary instance to get info
-                temp_parser = parser_class()
+                temp_parser = parser_class(ParserConfig.default())
                 info[jurisdiction][doc_type] = temp_parser.get_parser_info()
 
         return info

@@ -64,11 +64,11 @@ def find_section_text_and_pages(
             continue
 
         if not in_section:
-            if start_pattern.search(text):
+            match = start_pattern.search(text)
+            if match:
                 in_section = True
                 section_pages.append(page["page_number"])
                 # Capture text after the section title on the starting page
-                match = start_pattern.search(text)
                 section_text_parts.append(text[match.end() :].strip())
         else:
             # Check if the current page starts with a new section.
@@ -258,7 +258,7 @@ def extract_clauses_from_section_text(
     return clauses
 
 
-def main():
+def main() -> None:
     root_dir = Path(__file__).parent.parent.parent.parent
     uk_fca_conf_dir = root_dir / "data" / "regulations" / "uk" / "fca"
     pdf_path = uk_fca_conf_dir / "CONC.pdf"

@@ -17,7 +17,7 @@ class RegulationParserService:
         Args:
             config: Optional parser configuration
         """
-        self.config = config or ParserConfig()
+        self.config = config or ParserConfig.default()
         self._parse_history: list[dict] = []
 
     def parse_document(

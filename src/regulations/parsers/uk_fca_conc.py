@@ -86,7 +86,10 @@ class UKFCACoNCParser(BaseRegulationParser):
         )
 
         return ParsedDocument(
-            document_type="UK_FCA_CONC", clauses=all_clauses, metadata=metadata
+            document_type="UK_FCA_CONC",
+            version=self.VERSION,
+            clauses=all_clauses,
+            metadata=metadata,
         )
 
     def _extract_pdf_pages(self, pdf_path: Path) -> list[dict]:
@@ -141,11 +144,11 @@ class UKFCACoNCParser(BaseRegulationParser):
                 continue
 
             if not in_section:
-                if start_pattern.search(text):
+                match = start_pattern.search(text)
+                if match:
                     in_section = True
                     section_pages.append(page["page_number"])
                     # Capture text after the section title on the starting page
-                    match = start_pattern.search(text)
                     section_text_parts.append(text[match.end() :].strip())
             else:
                 # Check if the current page starts with a new section

@@ -31,7 +31,7 @@ class RegulationClause(BaseModel):
     )
 
     @model_validator(mode="after")
-    def determine_clause_type(self):
+    def determine_clause_type(self) -> "RegulationClause":
         """Auto-determine clause type from clause_id if not provided."""
         # If explicitly set to something other than UNKNOWN, keep it
         if self.clause_type != ClauseType.UNKNOWN:
@@ -118,3 +118,11 @@ class ParserConfig(BaseModel):
     sections_to_extract: dict[str, str] | None = Field(
         None, description="Specific sections to extract"
     )
+
+    @classmethod
+    def default(cls) -> "ParserConfig":
+        """Create a ParserConfig with default values.
+
+        This method is provided for type checker compatibility.
+        """
+        return cls()  # type: ignore[call-arg]

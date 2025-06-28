@@ -7,9 +7,9 @@ from ..models import ParsedDocument, ParserConfig
 class BaseRegulationParser(ABC):
     """Abstract base class for all regulation parsers."""
 
-    def __init__(self, config: ParserConfig = None):
+    def __init__(self, config: ParserConfig | None = None):
         """Initialize the parser with optional configuration."""
-        self.config = config or ParserConfig()
+        self.config = config or ParserConfig.default()
 
     @abstractmethod
     def get_default_file_path(self) -> str:
