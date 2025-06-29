@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.regulations.models import ParserConfig
 from regulations.parsers.eu.eu_eba_gl_2020_06 import EUEBAGl202006Parser
+from src.regulations.models import ParserConfig
 
 
 class TestEUEBAGl202006Parser:
@@ -216,8 +216,12 @@ granting criteria, in accordance with these guidelines.
         is_valid = parser.validate_document(test_file)
         assert is_valid is True
 
-    @patch("regulations.parsers.eu.eu_eba_gl_2020_06.EUEBAGl202006Parser._extract_pdf_pages")
-    @patch("regulations.parsers.eu.eu_eba_gl_2020_06.EUEBAGl202006Parser._validate_document")
+    @patch(
+        "regulations.parsers.eu.eu_eba_gl_2020_06.EUEBAGl202006Parser._extract_pdf_pages"
+    )
+    @patch(
+        "regulations.parsers.eu.eu_eba_gl_2020_06.EUEBAGl202006Parser._validate_document"
+    )
     def test_parse_document_success(
         self, mock_validate, mock_extract_pages, parser, sample_pdf_pages
     ):
@@ -297,18 +301,22 @@ Publication date: 29 May 2020
     def test_extract_clauses_from_section_section_8(self, parser, sample_pdf_pages):
         """Test extracting clauses from section 8."""
         # Combine text from relevant pages for section 8
-        section_text = "\n".join([
-            sample_pdf_pages[1]["text"],  # Page 60
-            sample_pdf_pages[2]["text"],  # Page 61
-            sample_pdf_pages[3]["text"],  # Page 62
-        ])
+        section_text = "\n".join(
+            [
+                sample_pdf_pages[1]["text"],  # Page 60
+                sample_pdf_pages[2]["text"],  # Page 61
+                sample_pdf_pages[3]["text"],  # Page 62
+            ]
+        )
         section_info = {"text": section_text, "pages": [60, 61, 62]}
 
         clauses = parser._extract_clauses_from_section(
             section_info, "8", sample_pdf_pages
         )
 
-        assert len(clauses) >= 5  # Should find paragraphs 240, 241, 242, 243, 244, 251, 252
+        assert (
+            len(clauses) >= 5
+        )  # Should find paragraphs 240, 241, 242, 243, 244, 251, 252
 
         # Check first clause
         first_clause = clauses[0]
@@ -327,10 +335,16 @@ Publication date: 29 May 2020
     def test_extract_clauses_subsection_detection(self, parser, sample_pdf_pages):
         """Test that subsection names are correctly detected."""
         # Use page with subsection headers
-        section_text = "\n".join([
-            sample_pdf_pages[3]["text"],  # Page 62 - has "8.2 Monitoring of credit exposures and borrowers"
-            sample_pdf_pages[4]["text"],  # Page 63 - has "8.3 Regular credit review of borrowers"
-        ])
+        section_text = "\n".join(
+            [
+                sample_pdf_pages[3][
+                    "text"
+                ],  # Page 62 - has "8.2 Monitoring of credit exposures and borrowers"
+                sample_pdf_pages[4][
+                    "text"
+                ],  # Page 63 - has "8.3 Regular credit review of borrowers"
+            ]
+        )
         section_info = {"text": section_text, "pages": [62, 63]}
 
         clauses = parser._extract_clauses_from_section(
@@ -343,7 +357,9 @@ Publication date: 29 May 2020
         # Check subsection name assignment
         clause_251 = next((c for c in clauses if c.clause_id == "251"), None)
         assert clause_251 is not None
-        assert clause_251.subsection_name == "Monitoring of credit exposures and borrowers"
+        assert (
+            clause_251.subsection_name == "Monitoring of credit exposures and borrowers"
+        )
 
         clause_257 = next((c for c in clauses if c.clause_id == "257"), None)
         assert clause_257 is not None
@@ -395,7 +411,9 @@ Another important line.
 
         # Test finding subsection before clause 240
         subsection = parser._find_subsection_name("240", section_text, 80)
-        assert subsection == "General provisions for the credit risk monitoring framework"
+        assert (
+            subsection == "General provisions for the credit risk monitoring framework"
+        )
 
         # Test finding subsection before clause 251
         subsection = parser._find_subsection_name("251", section_text, 200)
@@ -445,7 +463,7 @@ Another important line.
         """Test that all expected subsection mappings are present."""
         expected_mappings = {
             "General provisions for the credit risk monitoring framework",
-            "Monitoring of credit exposures and borrowers", 
+            "Monitoring of credit exposures and borrowers",
             "Regular credit review of borrowers",
             "Monitoring of covenants",
             "Use of early warning indicators/watch lists in credit monitoring",
@@ -512,33 +530,36 @@ This annex content should not be extracted as a clause.
     def test_page_validation_for_section_8(self, parser, sample_pdf_pages):
         """Test that section 8 detection requires page 50+ or contains '240.'."""
         # Test with page < 50 but contains '240.'
-        early_page_with_240 = [{
-            "page_number": 30,
-            "text": "8. Monitoring framework\n240. Some content here."
-        }]
-        
+        early_page_with_240 = [
+            {
+                "page_number": 30,
+                "text": "8. Monitoring framework\n240. Some content here.",
+            }
+        ]
+
         section_info = parser._find_section_text_and_pages(
             early_page_with_240, "8", "Monitoring framework"
         )
         assert section_info is not None  # Should be found due to '240.'
 
         # Test with page >= 50
-        late_page_without_240 = [{
-            "page_number": 55,
-            "text": "8. Monitoring framework\nSome other content."
-        }]
-        
+        late_page_without_240 = [
+            {"page_number": 55, "text": "8. Monitoring framework\nSome other content."}
+        ]
+
         section_info = parser._find_section_text_and_pages(
             late_page_without_240, "8", "Monitoring framework"
         )
         assert section_info is not None  # Should be found due to page >= 50
 
         # Test with early page and no '240.' (like table of contents)
-        toc_page = [{
-            "page_number": 3,
-            "text": "8. Monitoring framework\nTable of contents entry."
-        }]
-        
+        toc_page = [
+            {
+                "page_number": 3,
+                "text": "8. Monitoring framework\nTable of contents entry.",
+            }
+        ]
+
         section_info = parser._find_section_text_and_pages(
             toc_page, "8", "Monitoring framework"
         )

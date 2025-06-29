@@ -43,7 +43,7 @@ def generate_all_json_files(output_dir: str = "output"):
                     filepath = output_path / filename
 
                     # Convert to JSON and save
-                    json_data = parsed_doc.model_dump(mode='json')
+                    json_data = parsed_doc.model_dump(mode="json")
                     with open(filepath, "w") as f:
                         json.dump(json_data, f, indent=2, ensure_ascii=False)
 
@@ -56,7 +56,7 @@ def generate_all_json_files(output_dir: str = "output"):
                 filename = f"{jurisdiction}_parsed.json"
                 filepath = output_path / filename
 
-                json_data = results.model_dump(mode='json')
+                json_data = results.model_dump(mode="json")
                 with open(filepath, "w") as f:
                     json.dump(json_data, f, indent=2, ensure_ascii=False)
 

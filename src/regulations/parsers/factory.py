@@ -1,11 +1,12 @@
 from enum import Enum
 from pathlib import Path
 
-from ..models import ParserConfig
-from .base import BaseRegulationParser
+from regulations.parsers.eu.eu_eba_gl_2020_06 import EUEBAGl202006Parser
 from regulations.parsers.uk.uk_fca_conc import UKFCACoNCParser
 from regulations.parsers.uk.uk_fca_fg21 import UKFCAFg21Parser
-from regulations.parsers.eu.eu_eba_gl_2020_06 import EUEBAGl202006Parser
+
+from ..models import ParserConfig
+from .base import BaseRegulationParser
 
 
 class Jurisdiction(str, Enum):

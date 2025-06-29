@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 
+from regulations.parsers.uk.uk_fca_conc import UKFCACoNCParser
 from src.regulations.parsers.base import BaseRegulationParser
 from src.regulations.parsers.factory import ParserFactory
-from regulations.parsers.uk.uk_fca_conc import UKFCACoNCParser
 
 
 class MockParser(BaseRegulationParser):

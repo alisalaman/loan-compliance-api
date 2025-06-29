@@ -259,7 +259,7 @@ class UKFCAFg21Parser(BaseRegulationParser):
 
             # Track current subsection name across clauses
             current_subsection_name = ""
-            
+
             for match in clause_pattern.finditer(section_text):
                 clause_id = match.group(1).strip()  # e.g., "1.1", "2.5"
                 content = match.group(3).strip()
@@ -268,7 +268,9 @@ class UKFCAFg21Parser(BaseRegulationParser):
                 content = self._clean_clause_content(content)
 
                 # Check if there's a new subsection name before this clause
-                new_subsection = self._find_subsection_name(clause_id, section_text, match.start())
+                new_subsection = self._find_subsection_name(
+                    clause_id, section_text, match.start()
+                )
                 if new_subsection:
                     current_subsection_name = new_subsection
 
@@ -361,7 +363,7 @@ class UKFCAFg21Parser(BaseRegulationParser):
     # Dictionary mapping last line of multi-line subsection names to their flattened form
     SUBSECTION_MAPPING = {
         "This Guidance": "This Guidance",
-        "Our Principles for Businesses": "Our Principles for Businesses", 
+        "Our Principles for Businesses": "Our Principles for Businesses",
         "Treating Customers Fairly": "Treating Customers Fairly",
         "Monitoring firms’ treatment of vulnerable customers": "Monitoring firms’ treatment of vulnerable customers",
         "that exist in the firm’s target market and customer base": "Understanding the nature and scale of characteristics of vulnerability that exist in the firm’s target market and customer base",
@@ -395,29 +397,31 @@ class UKFCAFg21Parser(BaseRegulationParser):
         "services are presented in ways that are understandable for consumers": "Ensuring all communications and information about products and services are presented in ways that are understandable for consumers",
         "account of their needs": "Considering how to communicate with vulnerable consumers, taking account of their needs",
         "needs of vulnerable consumers are not met": "Implementing appropriate processes to evaluate where the needs of vulnerable consumers are not met",
-        "Management information": "Management information"
+        "Management information": "Management information",
     }
 
-    def _find_subsection_name(self, clause_id: str, section_text: str, clause_start_pos: int) -> str:
+    def _find_subsection_name(
+        self, clause_id: str, section_text: str, clause_start_pos: int
+    ) -> str:
         """Extract subsection name by checking previous lines for known subsection endings."""
         if clause_start_pos == 0:
             return ""
-        
+
         # Look at text before the current clause
         text_before_clause = section_text[:clause_start_pos]
-        lines_before = text_before_clause.split('\n')
-        
+        lines_before = text_before_clause.split("\n")
+
         # Check the last few lines before this clause for subsection name endings
         for i in range(min(5, len(lines_before))):
-            line = lines_before[-(i+1)].strip()
+            line = lines_before[-(i + 1)].strip()
             if not line:
                 continue
-                
+
             # Check if this line matches any known subsection ending
             for line_ending, full_subsection_name in self.SUBSECTION_MAPPING.items():
                 if line.endswith(line_ending):
                     return full_subsection_name
-                    
+
         return ""
 
     def _extract_examples_and_case_studies(

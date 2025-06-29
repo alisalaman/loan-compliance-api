@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.regulations.models import ParserConfig
 from regulations.parsers.uk.uk_fca_fg21 import UKFCAFg21Parser
+from src.regulations.models import ParserConfig
 
 
 class TestUKFCAFg21Parser:

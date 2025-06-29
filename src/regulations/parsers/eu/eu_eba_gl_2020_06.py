@@ -161,7 +161,8 @@ class EUEBAGl202006Parser(BaseRegulationParser):
             if (
                 "www.eba.europa.eu" in line
                 or line.startswith("Publication")
-                or "European Banking Authority" in line and len(line) < 50
+                or "European Banking Authority" in line
+                and len(line) < 50
             ):
                 continue
 
@@ -183,9 +184,11 @@ class EUEBAGl202006Parser(BaseRegulationParser):
             rf"^{section_number}\.?\s+{re.escape(section_title)}",
             re.IGNORECASE | re.MULTILINE,
         )
-        
+
         # End at next section (section 9) or end of document
-        next_section = str(int(section_number) + 1) if section_number.isdigit() else None
+        next_section = (
+            str(int(section_number) + 1) if section_number.isdigit() else None
+        )
         if next_section:
             end_pattern = re.compile(
                 rf"^{next_section}\.?\s+",
@@ -204,7 +207,9 @@ class EUEBAGl202006Parser(BaseRegulationParser):
                 if match:
                     # Additional validation: ensure this section contains paragraph 240
                     # (the actual section 8 content, not table of contents)
-                    if "240." in text or page["page_number"] >= 50:  # Section 8 starts around page 60
+                    if (
+                        "240." in text or page["page_number"] >= 50
+                    ):  # Section 8 starts around page 60
                         in_section = True
                         section_pages.append(page["page_number"])
                         # Capture text after the section title
@@ -217,7 +222,7 @@ class EUEBAGl202006Parser(BaseRegulationParser):
                         # Section ends here, append text before the new section
                         section_text_parts.append(text[: match.start()].strip())
                         break
-                
+
                 section_pages.append(page["page_number"])
                 section_text_parts.append(text.strip())
 
@@ -245,7 +250,7 @@ class EUEBAGl202006Parser(BaseRegulationParser):
 
         # Track current subsection name across clauses
         current_subsection_name = ""
-        
+
         for match in clause_pattern.finditer(section_text):
             clause_id = match.group(1).strip()  # e.g., "240", "241"
             content = match.group(2).strip()
@@ -254,7 +259,9 @@ class EUEBAGl202006Parser(BaseRegulationParser):
             content = self._clean_clause_content(content)
 
             # Check if there's a new subsection name before this clause
-            new_subsection = self._find_subsection_name(clause_id, section_text, match.start())
+            new_subsection = self._find_subsection_name(
+                clause_id, section_text, match.start()
+            )
             if new_subsection:
                 current_subsection_name = new_subsection
 
@@ -321,7 +328,7 @@ class EUEBAGl202006Parser(BaseRegulationParser):
         "monitoring framework": "General provisions for the credit risk monitoring framework",
         "exposures and borrowers": "Monitoring of credit exposures and borrowers",
         "credit exposures and borrowers": "Monitoring of credit exposures and borrowers",
-        "review of borrowers": "Regular credit review of borrowers", 
+        "review of borrowers": "Regular credit review of borrowers",
         "credit review of borrowers": "Regular credit review of borrowers",
         "of covenants": "Monitoring of covenants",
         "monitoring of covenants": "Monitoring of covenants",
@@ -331,24 +338,26 @@ class EUEBAGl202006Parser(BaseRegulationParser):
         "process on triggered EWIs": "Follow-up and escalation process on triggered EWIs",
     }
 
-    def _find_subsection_name(self, clause_id: str, section_text: str, clause_start_pos: int) -> str:
+    def _find_subsection_name(
+        self, clause_id: str, section_text: str, clause_start_pos: int
+    ) -> str:
         """Extract subsection name by checking previous lines for known subsection endings."""
         if clause_start_pos == 0:
             return ""
-        
+
         # Look at text before the current clause
         text_before_clause = section_text[:clause_start_pos]
-        lines_before = text_before_clause.split('\n')
-        
+        lines_before = text_before_clause.split("\n")
+
         # Check the last few lines before this clause for subsection name endings
         for i in range(min(10, len(lines_before))):
-            line = lines_before[-(i+1)].strip()
+            line = lines_before[-(i + 1)].strip()
             if not line:
                 continue
-                
+
             # Check if this line matches any known subsection ending
             for line_ending, full_subsection_name in self.SUBSECTION_MAPPING.items():
                 if line.lower().endswith(line_ending.lower()):
                     return full_subsection_name
-                    
+
         return ""
