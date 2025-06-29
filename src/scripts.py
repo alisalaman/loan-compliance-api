@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Development scripts for code quality, formatting, and testing."""
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -183,6 +184,97 @@ def check_all() -> None:
     print("\n🎉 All quality checks passed! Ready for deployment!")
 
 
+def generate_all() -> None:
+    """Generate JSON files for all available regulation parsers."""
+    print("🚀 Generating JSON files for all parsers...")
+
+    # Change to project root
+    project_root = Path(__file__).parent.parent
+
+    try:
+        # Add project root to Python path for imports
+        sys.path.insert(0, str(project_root))
+        # Import here to avoid circular imports
+        from src.regulations.services.parser_service import RegulationParserService
+
+        # Create service instance
+        service = RegulationParserService()
+
+        # Create output directory
+        output_path = project_root / "output"
+        output_path.mkdir(exist_ok=True)
+
+        # Get all supported jurisdictions
+        jurisdictions = service.get_supported_jurisdictions()
+
+        if not jurisdictions:
+            print("❌ No jurisdictions found!")
+            sys.exit(1)
+
+        total_generated = 0
+        total_failed = 0
+
+        for jurisdiction in jurisdictions:
+            print(f"\n📋 Processing jurisdiction: {jurisdiction}")
+
+            try:
+                # Parse all document types for this jurisdiction
+                results = service.parse_document(jurisdiction)
+
+                # Handle the case where results is a dict (multiple parsers)
+                if isinstance(results, dict):
+                    for doc_type, parsed_doc in results.items():
+                        filename = f"{jurisdiction}_{doc_type}_parsed.json"
+                        filepath = output_path / filename
+
+                        # Convert to JSON and save
+                        json_data = parsed_doc.model_dump(mode='json')
+                        with open(filepath, "w", encoding="utf-8") as f:
+                            json.dump(json_data, f, indent=2, ensure_ascii=False)
+
+                        print(
+                            f"✅ Generated: {filename} ({parsed_doc.clause_count} clauses)"
+                        )
+                        total_generated += 1
+                else:
+                    # Single parser result (backward compatibility)
+                    filename = f"{jurisdiction}_parsed.json"
+                    filepath = output_path / filename
+
+                    json_data = results.model_dump(mode='json')
+                    with open(filepath, "w", encoding="utf-8") as f:
+                        json.dump(json_data, f, indent=2, ensure_ascii=False)
+
+                    print(f"✅ Generated: {filename} ({results.clause_count} clauses)")
+                    total_generated += 1
+
+            except Exception as e:
+                print(f"❌ Failed to parse {jurisdiction}: {e}")
+                total_failed += 1
+
+        print("\n🎉 Summary:")
+        print(f"   ✅ Generated: {total_generated} JSON files")
+        print(f"   ❌ Failed: {total_failed} jurisdictions")
+        print(f"   📁 Output directory: {output_path.absolute()}")
+
+        if total_generated == 0:
+            print(
+                "\n⚠️  No files were generated. Check that regulation PDF files exist in the data directory."
+            )
+            sys.exit(1)
+        else:
+            print(
+                f"\n✨ Successfully generated {total_generated} regulation JSON files!"
+            )
+
+    except ImportError as e:
+        print(f"❌ Failed to import regulation service: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ Unexpected error: {e}")
+        sys.exit(1)
+
+
 if __name__ == "__main__":
     # Allow running scripts directly
     import sys
@@ -199,9 +291,11 @@ if __name__ == "__main__":
             check_security()
         elif command == "all":
             check_all()
+        elif command == "generate-all":
+            generate_all()
         else:
             print(f"Unknown command: {command}")
-            print("Available commands: lint, format, test, security, all")
+            print("Available commands: lint, format, test, security, all, generate-all")
             sys.exit(1)
     else:
-        print("Available commands: lint, format, test, security, all")
+        print("Available commands: lint, format, test, security, all, generate-all")

@@ -32,27 +32,35 @@ class TestIntegration:
         not Path("data/regulations/uk/fca/CONC.pdf").exists(),
         reason="CONC.pdf not available for integration testing",
     )
-    def test_end_to_end_conc_parsing(self, service):
-        """Test complete end-to-end parsing of actual CONC document."""
+    def test_end_to_end_all_documents_parsing(self, service):
+        """Test complete end-to-end parsing of all available documents for a jurisdiction."""
         Path("data/regulations/uk/fca/CONC.pdf")
 
-        # Test auto-detection - jurisdiction is required, document type is auto-selected
-        result = service.parse_document(jurisdiction="uk")
+        # Test parsing all documents - should return dict of parsed documents
+        results = service.parse_document(jurisdiction="uk")
 
-        # Verify document structure
-        assert result.document_type == "UK_FCA_CONC"
-        assert result.clause_count > 0
-        assert len(result.clauses) > 100  # Should extract many clauses
+        # Should return dictionary of parsed documents
+        assert isinstance(results, dict)
+        assert len(results) > 0
+
+        # Should have at least FCA_CONC (and potentially FCA_FG21 if available)
+        assert "FCA_CONC" in results
+
+        # Test CONC document specifically
+        conc_result = results["FCA_CONC"]
+        assert conc_result.document_type == "UK_FCA_CONC"
+        assert conc_result.clause_count > 0
+        assert len(conc_result.clauses) > 100  # Should extract many clauses
 
         # Verify metadata
-        assert "CONC.pdf" in result.metadata.source_file
-        assert result.metadata.total_pages > 0
-        assert "5.2A" in result.metadata.sections_extracted
-        assert "2.10" in result.metadata.sections_extracted
-        assert "7" in result.metadata.sections_extracted
+        assert "CONC.pdf" in conc_result.metadata.source_file
+        assert conc_result.metadata.total_pages > 0
+        assert "5.2A" in conc_result.metadata.sections_extracted
+        assert "2.10" in conc_result.metadata.sections_extracted
+        assert "7" in conc_result.metadata.sections_extracted
 
         # Verify clause structure
-        sample_clause = result.clauses[0]
+        sample_clause = conc_result.clauses[0]
         assert sample_clause.section is not None
         assert sample_clause.clause_id is not None
         assert sample_clause.content is not None
@@ -64,14 +72,15 @@ class TestIntegration:
         ]
 
         # Verify we have clauses from different sections
-        sections = {clause.section for clause in result.clauses}
+        sections = {clause.section for clause in conc_result.clauses}
         assert len(sections) > 1
 
-        # Check parse history
+        # Check parse history - should have multiple entries for each parser + summary
         history = service.get_parse_history()
-        assert len(history) == 1
-        assert history[0]["success"] is True
-        assert history[0]["clauses_extracted"] == result.clause_count
+        assert len(history) >= len(results)  # At least one per successful parse
+        summary_entry = history[-1]  # Last entry should be summary
+        assert summary_entry["document_type"] == "ALL"
+        assert summary_entry["success"] is True
 
     @pytest.mark.skipif(
         not Path("data/regulations/uk/fca/CONC.pdf").exists(),
@@ -97,7 +106,10 @@ class TestIntegration:
     )
     def test_custom_configuration(self, custom_service):
         """Test parsing with custom configuration."""
-        result = custom_service.parse_document(jurisdiction="uk")
+        # Parse with explicit document type to get single result
+        result = custom_service.parse_document(
+            jurisdiction="uk", document_type="FCA_CONC"
+        )
 
         # Should only extract section 7 due to custom config
         assert result.metadata.sections_extracted == ["7"]
@@ -143,23 +155,22 @@ class TestIntegration:
 
     def test_error_handling_integration(self, service):
         """Test error handling across the complete pipeline."""
-        # Test with invalid jurisdiction
-        with pytest.raises(RuntimeError) as exc_info:
+        # Test with invalid jurisdiction (document_type=None)
+        with pytest.raises(ValueError) as exc_info:
             service.parse_document(jurisdiction="invalid")
 
-        assert "Failed to parse document" in str(exc_info.value)
         assert "No parsers available for jurisdiction: invalid" in str(exc_info.value)
-
-        # Check error was logged
-        history = service.get_parse_history()
-        assert len(history) == 1
-        assert history[0]["success"] is False
 
         # Test with invalid jurisdiction/type combination
         with pytest.raises(RuntimeError) as exc_info:
             service.parse_document(jurisdiction="uk", document_type="INVALID")
 
         assert "Failed to parse document" in str(exc_info.value)
+
+        # Check error was logged
+        history = service.get_parse_history()
+        assert len(history) == 1
+        assert history[0]["success"] is False
 
     def test_factory_registration_integration(self):
         """Test that factory registration works with service layer."""

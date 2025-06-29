@@ -70,6 +70,7 @@ format = "scripts:format_code"
 test = "scripts:run_tests"
 security = "scripts:check_security"
 check-all = "scripts:check_all"
+generate-all = "scripts:generate_all"
 
 # ===================================================================================
 # Tool Configurations

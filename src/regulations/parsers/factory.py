@@ -4,6 +4,7 @@ from pathlib import Path
 from ..models import ParserConfig
 from .base import BaseRegulationParser
 from .uk_fca_conc import UKFCACoNCParser
+from .uk_fca_fg21 import UKFCAFg21Parser
 
 
 class Jurisdiction(str, Enum):
@@ -23,6 +24,7 @@ class ParserFactory:
     _parsers: dict[str, dict[str, type[BaseRegulationParser]]] = {
         Jurisdiction.UK: {
             "FCA_CONC": UKFCACoNCParser,
+            "FCA_FG21": UKFCAFg21Parser,
             # "FCA_PRIN": UKFCAPrinciplesParser,
             # "PRA_CRR": UKPRACRRParser,
         },
@@ -56,14 +58,21 @@ class ParserFactory:
         """
         jurisdiction = jurisdiction.lower()
 
-        if jurisdiction not in cls._parsers:
-            available_jurisdictions = ", ".join(cls._parsers.keys())
+        # Find the matching jurisdiction key (enum or string)
+        jurisdiction_key = None
+        for key in cls._parsers.keys():
+            if (hasattr(key, 'value') and str(key.value) == jurisdiction) or str(key) == jurisdiction:
+                jurisdiction_key = key
+                break
+        
+        if jurisdiction_key is None:
+            available_jurisdictions = ", ".join([str(k.value) if hasattr(k, 'value') else str(k) for k in cls._parsers.keys()])
             raise ValueError(
                 f"No parsers available for jurisdiction: {jurisdiction}. "
                 f"Available jurisdictions: {available_jurisdictions}"
             )
 
-        jurisdiction_parsers = cls._parsers[jurisdiction]
+        jurisdiction_parsers = cls._parsers[jurisdiction_key]
         if document_type not in jurisdiction_parsers:
             available_types = ", ".join(jurisdiction_parsers.keys())
             raise ValueError(
@@ -124,7 +133,8 @@ class ParserFactory:
         Returns:
             List of supported jurisdiction identifiers
         """
-        return list(cls._parsers.keys())
+        # Convert enum keys to string values
+        return [str(key.value) if hasattr(key, 'value') else str(key) for key in cls._parsers.keys()]
 
     @classmethod
     def get_supported_types_for_jurisdiction(cls, jurisdiction: str) -> list[str]:
@@ -137,7 +147,13 @@ class ParserFactory:
             List of supported document types for the jurisdiction
         """
         jurisdiction = jurisdiction.lower()
-        return list(cls._parsers.get(jurisdiction, {}).keys())
+        
+        # Find the matching jurisdiction key (enum or string)
+        for key in cls._parsers.keys():
+            if (hasattr(key, 'value') and str(key.value) == jurisdiction) or str(key) == jurisdiction:
+                return list(cls._parsers[key].keys())
+        
+        return []
 
     @classmethod
     def get_all_supported_combinations(cls) -> dict[str, list[str]]:
@@ -147,7 +163,7 @@ class ParserFactory:
             Dictionary mapping jurisdictions to their supported document types
         """
         return {
-            jurisdiction: list(parsers.keys())
+            str(jurisdiction.value) if hasattr(jurisdiction, 'value') else str(jurisdiction): list(parsers.keys())
             for jurisdiction, parsers in cls._parsers.items()
         }
 

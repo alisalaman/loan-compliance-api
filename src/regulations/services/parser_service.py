@@ -24,13 +24,39 @@ class RegulationParserService:
         self,
         jurisdiction: str,
         document_type: str | None = None,
-    ) -> ParsedDocument:
+    ) -> ParsedDocument | dict[str, ParsedDocument]:
         """Parse a regulation document.
 
         Args:
             jurisdiction: Jurisdiction identifier (e.g., 'uk', 'eu', 'us')
             document_type: Optional document type identifier (e.g., 'FCA_CONC').
-                          If not provided, uses the first available parser for the jurisdiction.
+                          If not provided, parses all available document types for the jurisdiction.
+
+        Returns:
+            ParsedDocument: If document_type is specified, returns a single parsed document
+            dict[str, ParsedDocument]: If document_type is None, returns dict mapping document types to parsed documents
+
+        Raises:
+            ValueError: If no suitable parser is found
+            RuntimeError: If parsing fails
+        """
+        # If document_type is None, parse all document types for the jurisdiction
+        if document_type is None:
+            return self._parse_all_documents_for_jurisdiction(jurisdiction)
+
+        # Original single document parsing logic
+        return self._parse_single_document(jurisdiction, document_type)
+
+    def _parse_single_document(
+        self,
+        jurisdiction: str,
+        document_type: str,
+    ) -> ParsedDocument:
+        """Parse a single regulation document.
+
+        Args:
+            jurisdiction: Jurisdiction identifier (e.g., 'uk', 'eu', 'us')
+            document_type: Document type identifier (e.g., 'FCA_CONC')
 
         Returns:
             ParsedDocument: Structured representation of the parsed document
@@ -42,20 +68,6 @@ class RegulationParserService:
         start_time = datetime.now()
 
         try:
-            # Determine document type if not provided
-            if document_type is None:
-                available_types = ParserFactory.get_supported_types_for_jurisdiction(
-                    jurisdiction
-                )
-                if not available_types:
-                    raise ValueError(
-                        f"No parsers available for jurisdiction: {jurisdiction}"
-                    )
-                document_type = available_types[0]  # Use first available
-                logger.info(
-                    f"Auto-selected document type: {document_type} for jurisdiction: {jurisdiction}"
-                )
-
             # Create parser for the specified jurisdiction and document type
             parser = ParserFactory.create_parser(
                 jurisdiction, document_type, self.config
@@ -130,6 +142,90 @@ class RegulationParserService:
             raise RuntimeError(
                 f"Failed to parse document for {jurisdiction}:{document_type}: {str(e)}"
             ) from e
+
+    def _parse_all_documents_for_jurisdiction(
+        self,
+        jurisdiction: str,
+    ) -> dict[str, ParsedDocument]:
+        """Parse all available document types for a jurisdiction.
+
+        Args:
+            jurisdiction: Jurisdiction identifier (e.g., 'uk', 'eu', 'us')
+
+        Returns:
+            Dictionary mapping document types to their parsed documents
+
+        Raises:
+            ValueError: If no parsers are available for the jurisdiction
+            RuntimeError: If all parsing attempts fail
+        """
+        start_time = datetime.now()
+
+        # Get all available document types for the jurisdiction
+        available_types = ParserFactory.get_supported_types_for_jurisdiction(
+            jurisdiction
+        )
+        if not available_types:
+            raise ValueError(f"No parsers available for jurisdiction: {jurisdiction}")
+
+        logger.info(
+            f"Parsing all document types for jurisdiction '{jurisdiction}': {', '.join(available_types)}"
+        )
+
+        parsed_documents = {}
+        failed_parsers = []
+        successful_parsers = []
+
+        # Parse each document type
+        for document_type in available_types:
+            try:
+                logger.info(f"Parsing document type: {document_type}")
+                parsed_doc = self._parse_single_document(jurisdiction, document_type)
+                parsed_documents[document_type] = parsed_doc
+                successful_parsers.append(document_type)
+                logger.info(f"Successfully parsed {document_type}")
+            except Exception as e:
+                logger.warning(f"Failed to parse {document_type}: {str(e)}")
+                failed_parsers.append((document_type, str(e)))
+
+        end_time = datetime.now()
+        total_duration = (end_time - start_time).total_seconds()
+
+        # Log summary operation
+        self._log_parse_operation(
+            {
+                "file_path": "multiple",
+                "jurisdiction": jurisdiction,
+                "document_type": "ALL",
+                "start_time": start_time,
+                "end_time": end_time,
+                "duration_seconds": total_duration,
+                "success": len(successful_parsers) > 0,
+                "successful_parsers": successful_parsers,
+                "failed_parsers": [doc_type for doc_type, _ in failed_parsers],
+                "total_attempted": len(available_types),
+                "total_successful": len(successful_parsers),
+                "total_failed": len(failed_parsers),
+            }
+        )
+
+        if not parsed_documents:
+            # All parsers failed
+            error_details = "; ".join(
+                [f"{doc_type}: {error}" for doc_type, error in failed_parsers]
+            )
+            raise RuntimeError(
+                f"Failed to parse any documents for jurisdiction '{jurisdiction}'. "
+                f"Errors: {error_details}"
+            )
+
+        logger.info(
+            f"Completed parsing for jurisdiction '{jurisdiction}': "
+            f"{len(successful_parsers)} successful, {len(failed_parsers)} failed "
+            f"in {total_duration:.2f}s"
+        )
+
+        return parsed_documents
 
     def get_supported_formats(self) -> dict[str, list[str]]:
         """Get list of supported document formats organized by jurisdiction.
