@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pdfplumber
 
-from ..models import DocumentMetadata, ParsedDocument, RegulationClause
-from .base import BaseRegulationParser
+from regulations.models import DocumentMetadata, ParsedDocument, RegulationClause
+from regulations.parsers.base import BaseRegulationParser
 
 
 class UKFCAFg21Parser(BaseRegulationParser):
@@ -257,12 +257,20 @@ class UKFCAFg21Parser(BaseRegulationParser):
                 re.DOTALL | re.MULTILINE,
             )
 
+            # Track current subsection name across clauses
+            current_subsection_name = ""
+            
             for match in clause_pattern.finditer(section_text):
                 clause_id = match.group(1).strip()  # e.g., "1.1", "2.5"
                 content = match.group(3).strip()
 
                 # Clean up content
                 content = self._clean_clause_content(content)
+
+                # Check if there's a new subsection name before this clause
+                new_subsection = self._find_subsection_name(clause_id, section_text, match.start())
+                if new_subsection:
+                    current_subsection_name = new_subsection
 
                 # Find page number for this clause
                 page_number = self._find_clause_page_number(
@@ -281,7 +289,7 @@ class UKFCAFg21Parser(BaseRegulationParser):
                     section=section_number,
                     clause_id=f"{clause_id} {clause_type}",
                     main_section_name=self.SECTIONS_TO_EXTRACT.get(section_number, ""),
-                    subsection_name=self._find_subsection_name(clause_id, content),
+                    subsection_name=current_subsection_name,
                     content=content,
                     page_number=page_number,
                 )
@@ -350,20 +358,66 @@ class UKFCAFg21Parser(BaseRegulationParser):
         # Default to first page of section if not found
         return section_pages[0] if section_pages else -1
 
-    def _find_subsection_name(self, clause_id: str, content: str) -> str:
-        """Extract subsection name from content if available."""
-        # Look for headings or emphasized text that might be subsection names
-        lines = content.split("\n")
-        for line in lines[:3]:  # Check first few lines
-            line = line.strip()
-            if (
-                len(line) > 5
-                and len(line) < 80
-                and not line.startswith(clause_id)
-                and not line.lower().startswith("firms")
-            ):
-                # Potential subsection header
-                return line
+    # Dictionary mapping last line of multi-line subsection names to their flattened form
+    SUBSECTION_MAPPING = {
+        "This Guidance": "This Guidance",
+        "Our Principles for Businesses": "Our Principles for Businesses", 
+        "Treating Customers Fairly": "Treating Customers Fairly",
+        "Monitoring firms’ treatment of vulnerable customers": "Monitoring firms’ treatment of vulnerable customers",
+        "that exist in the firm’s target market and customer base": "Understanding the nature and scale of characteristics of vulnerability that exist in the firm’s target market and customer base",
+        "consumer experience and outcomes": "Understanding the impact of vulnerability on the needs of consumers in their target market and customer base, by asking themselves what types of harm or disadvantage their customers may be vulnerable to, and how this might affect the consumer experience and outcomes",
+        "Examples of harm and disadvantage that firms should be alert to": "Examples of harm and disadvantage that firms should be alert to",
+        "Embedding the fair treatment of vulnerable consumers across": "Embedding the fair treatment of vulnerable consumers across the workforce",
+        "recognise and respond to a range of characteristics of vulnerability": "Ensuring frontline staff have the necessary skills and capability to recognise and respond to a range of characteristics of vulnerability",
+        "Encouraging disclosure": "Encouraging disclosure",
+        "Recording and accessing information about consumers’ needs": "Recording and accessing information about consumers’ needs",
+        "dealing with vulnerable consumers": "Offering practical and emotional support to frontline staff dealing with vulnerable consumers",
+        "Product and service design": "Product and service design",
+        "consumers": "Considering if features of products or services exploit vulnerable consumers",
+        "inflexibility that could result in harmful impacts": "Designing products and services that meet evolving needs and avoiding inflexibility that could result in harmful impacts",
+        "Designing sales processes that meet consumers’ needs": "Designing sales processes that meet consumers’ needs",
+        "and service design process": "Taking vulnerable consumers into account at all stages of the product and service design process",
+        "Idea generation": "Idea generation",
+        "Development": "Development",
+        "Testing": "Testing",
+        "Launch": "Launch",
+        "Review": "Review",
+        "Products sold through intermediaries in distribution chains": "Products sold through intermediaries in distribution chains",
+        "Customer service": "Customer service",
+        "vulnerable consumers to disclose their needs": "Setting up systems and processes in ways that support and enable vulnerable consumers to disclose their needs",
+        "needs of vulnerable consumers": "Delivering appropriate customer service that responds flexibly to the needs of vulnerable consumers",
+        "Telling consumers about the support available to them": "Telling consumers about the support available to them",
+        "Supporting decision-making and third party representation": "Supporting decision-making and third party representation",
+        "Third party representation": "Third party representation",
+        "Specialist Support": "Specialist Support",
+        "good customer service": "Putting in place systems and processes that support the delivery of good customer service",
+        "Communications": "Communications",
+        "services are presented in ways that are understandable for consumers": "Ensuring all communications and information about products and services are presented in ways that are understandable for consumers",
+        "account of their needs": "Considering how to communicate with vulnerable consumers, taking account of their needs",
+        "needs of vulnerable consumers are not met": "Implementing appropriate processes to evaluate where the needs of vulnerable consumers are not met",
+        "Management information": "Management information"
+    }
+
+    def _find_subsection_name(self, clause_id: str, section_text: str, clause_start_pos: int) -> str:
+        """Extract subsection name by checking previous lines for known subsection endings."""
+        if clause_start_pos == 0:
+            return ""
+        
+        # Look at text before the current clause
+        text_before_clause = section_text[:clause_start_pos]
+        lines_before = text_before_clause.split('\n')
+        
+        # Check the last few lines before this clause for subsection name endings
+        for i in range(min(5, len(lines_before))):
+            line = lines_before[-(i+1)].strip()
+            if not line:
+                continue
+                
+            # Check if this line matches any known subsection ending
+            for line_ending, full_subsection_name in self.SUBSECTION_MAPPING.items():
+                if line.endswith(line_ending):
+                    return full_subsection_name
+                    
         return ""
 
     def _extract_examples_and_case_studies(

@@ -3,8 +3,8 @@ from pathlib import Path
 
 from ..models import ParserConfig
 from .base import BaseRegulationParser
-from .uk_fca_conc import UKFCACoNCParser
-from .uk_fca_fg21 import UKFCAFg21Parser
+from regulations.parsers.uk.uk_fca_conc import UKFCACoNCParser
+from regulations.parsers.uk.uk_fca_fg21 import UKFCAFg21Parser
 
 
 class Jurisdiction(str, Enum):
@@ -61,12 +61,19 @@ class ParserFactory:
         # Find the matching jurisdiction key (enum or string)
         jurisdiction_key = None
         for key in cls._parsers.keys():
-            if (hasattr(key, 'value') and str(key.value) == jurisdiction) or str(key) == jurisdiction:
+            if (hasattr(key, "value") and str(key.value) == jurisdiction) or str(
+                key
+            ) == jurisdiction:
                 jurisdiction_key = key
                 break
-        
+
         if jurisdiction_key is None:
-            available_jurisdictions = ", ".join([str(k.value) if hasattr(k, 'value') else str(k) for k in cls._parsers.keys()])
+            available_jurisdictions = ", ".join(
+                [
+                    str(k.value) if hasattr(k, "value") else str(k)
+                    for k in cls._parsers.keys()
+                ]
+            )
             raise ValueError(
                 f"No parsers available for jurisdiction: {jurisdiction}. "
                 f"Available jurisdictions: {available_jurisdictions}"
@@ -134,7 +141,10 @@ class ParserFactory:
             List of supported jurisdiction identifiers
         """
         # Convert enum keys to string values
-        return [str(key.value) if hasattr(key, 'value') else str(key) for key in cls._parsers.keys()]
+        return [
+            str(key.value) if hasattr(key, "value") else str(key)
+            for key in cls._parsers.keys()
+        ]
 
     @classmethod
     def get_supported_types_for_jurisdiction(cls, jurisdiction: str) -> list[str]:
@@ -147,12 +157,14 @@ class ParserFactory:
             List of supported document types for the jurisdiction
         """
         jurisdiction = jurisdiction.lower()
-        
+
         # Find the matching jurisdiction key (enum or string)
         for key in cls._parsers.keys():
-            if (hasattr(key, 'value') and str(key.value) == jurisdiction) or str(key) == jurisdiction:
+            if (hasattr(key, "value") and str(key.value) == jurisdiction) or str(
+                key
+            ) == jurisdiction:
                 return list(cls._parsers[key].keys())
-        
+
         return []
 
     @classmethod
@@ -163,7 +175,11 @@ class ParserFactory:
             Dictionary mapping jurisdictions to their supported document types
         """
         return {
-            str(jurisdiction.value) if hasattr(jurisdiction, 'value') else str(jurisdiction): list(parsers.keys())
+            (
+                str(jurisdiction.value)
+                if hasattr(jurisdiction, "value")
+                else str(jurisdiction)
+            ): list(parsers.keys())
             for jurisdiction, parsers in cls._parsers.items()
         }
 

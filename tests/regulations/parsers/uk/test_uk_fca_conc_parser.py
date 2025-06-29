@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.regulations.models import ClauseType, ParserConfig
-from src.regulations.parsers.uk_fca_conc import UKFCACoNCParser
+from regulations.parsers.uk.uk_fca_conc import UKFCACoNCParser
 
 
 class TestUKFCACoNCParser:

@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pdfplumber
 
-from ..models import DocumentMetadata, ParsedDocument, RegulationClause
-from .base import BaseRegulationParser
+from regulations.models import DocumentMetadata, ParsedDocument, RegulationClause
+from regulations.parsers.base import BaseRegulationParser
 
 
 class UKFCACoNCParser(BaseRegulationParser):

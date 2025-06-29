@@ -6,7 +6,7 @@ import pytest
 
 from src.regulations.parsers.base import BaseRegulationParser
 from src.regulations.parsers.factory import ParserFactory
-from src.regulations.parsers.uk_fca_conc import UKFCACoNCParser
+from regulations.parsers.uk.uk_fca_conc import UKFCACoNCParser
 
 
 class MockParser(BaseRegulationParser):
