@@ -98,7 +98,7 @@ Arrears and default
 
             Path(tmp.name).unlink()
 
-    @patch("src.regulations.parsers.uk_fca_conc.pdfplumber.open")
+    @patch("regulations.parsers.uk.uk_fca_conc.pdfplumber.open")
     def test_validate_document_small_pdf(self, mock_pdfplumber, parser):
         """Test document validation with PDF that's too small."""
         mock_pdf = MagicMock()
@@ -109,8 +109,8 @@ Arrears and default
         is_valid = parser.validate_document(test_file)
         assert is_valid is False
 
-    @patch("src.regulations.parsers.uk_fca_conc.UKFCACoNCParser._extract_pdf_pages")
-    @patch("src.regulations.parsers.uk_fca_conc.UKFCACoNCParser._validate_document")
+    @patch("regulations.parsers.uk.uk_fca_conc.UKFCACoNCParser._extract_pdf_pages")
+    @patch("regulations.parsers.uk.uk_fca_conc.UKFCACoNCParser._validate_document")
     def test_parse_document_success(
         self, mock_validate, mock_extract_pages, parser, sample_pdf_pages
     ):
@@ -241,7 +241,7 @@ Arrears and default
         # Should use custom sections instead of defaults
         assert parser.config.sections_to_extract == {"5.2A": "Custom section"}
 
-    @patch("src.regulations.parsers.uk_fca_conc.pdfplumber.open")
+    @patch("regulations.parsers.uk.uk_fca_conc.pdfplumber.open")
     @patch("pathlib.Path.is_file")
     def test_extract_pdf_pages_respects_start_page(
         self, mock_is_file, mock_pdfplumber, parser

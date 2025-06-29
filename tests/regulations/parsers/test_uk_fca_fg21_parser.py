@@ -137,7 +137,7 @@ These create additional duties that may apply when serving vulnerable customers.
 
             Path(tmp.name).unlink()
 
-    @patch("src.regulations.parsers.uk_fca_fg21.pdfplumber.open")
+    @patch("regulations.parsers.uk.uk_fca_fg21.pdfplumber.open")
     def test_validate_document_small_pdf(self, mock_pdfplumber, parser):
         """Test document validation with PDF that's too small."""
         mock_pdf = MagicMock()
@@ -149,7 +149,7 @@ These create additional duties that may apply when serving vulnerable customers.
         assert is_valid is False
 
     @patch("pathlib.Path.exists")
-    @patch("src.regulations.parsers.uk_fca_fg21.pdfplumber.open")
+    @patch("regulations.parsers.uk.uk_fca_fg21.pdfplumber.open")
     def test_validate_document_contains_fg21_content(
         self, mock_pdfplumber, mock_exists, parser
     ):
@@ -176,8 +176,8 @@ These create additional duties that may apply when serving vulnerable customers.
         is_valid = parser.validate_document(test_file)
         assert is_valid is True
 
-    @patch("src.regulations.parsers.uk_fca_fg21.UKFCAFg21Parser._extract_pdf_pages")
-    @patch("src.regulations.parsers.uk_fca_fg21.UKFCAFg21Parser._validate_document")
+    @patch("regulations.parsers.uk.uk_fca_fg21.UKFCAFg21Parser._extract_pdf_pages")
+    @patch("regulations.parsers.uk.uk_fca_fg21.UKFCAFg21Parser._validate_document")
     def test_parse_document_success(
         self, mock_validate, mock_extract_pages, parser, sample_pdf_pages
     ):
@@ -372,7 +372,7 @@ A firm ignored customer's disclosed difficulties.
         # Should use custom sections instead of defaults
         assert parser.config.sections_to_extract == {"1": "Custom Introduction"}
 
-    @patch("src.regulations.parsers.uk_fca_fg21.pdfplumber.open")
+    @patch("regulations.parsers.uk.uk_fca_fg21.pdfplumber.open")
     @patch("pathlib.Path.is_file")
     def test_extract_pdf_pages_respects_start_page(
         self, mock_is_file, mock_pdfplumber, parser
@@ -406,7 +406,8 @@ A firm ignored customer's disclosed difficulties.
 
     def test_find_subsection_name(self, parser):
         """Test finding subsection names."""
-        content = """
+        section_text = """
+This Guidance
 Introduction and overview
 
 1.1 This guidance provides firms with information about treating vulnerable customers fairly.
@@ -414,8 +415,10 @@ Introduction and overview
 1.2 We expect all firms to have appropriate policies in place.
 """
 
-        subsection = parser._find_subsection_name("1.1", content)
+        # Test finding subsection at the beginning of a clause
+        subsection = parser._find_subsection_name("1.1", section_text, 50)
 
-        # Should extract potential section header
+        # Should extract subsection name from mapping
         assert isinstance(subsection, str)
-        # May be empty if no clear subsection header found
+        # Should find "This Guidance" based on hardcoded mapping
+        assert subsection == "This Guidance"
