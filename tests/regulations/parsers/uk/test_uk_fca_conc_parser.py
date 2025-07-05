@@ -231,7 +231,9 @@ Arrears and default
 
         # Should have both R (Rule) and G (Guidance) clauses
         clause_types = {clause.clause_type for clause in clauses}
-        assert ClauseType.RULE in clause_types or ClauseType.GUIDANCE in clause_types
+        assert (
+            ClauseType.REGULATION in clause_types or ClauseType.GUIDANCE in clause_types
+        )
 
     def test_custom_sections_to_extract(self):
         """Test parser with custom sections configuration."""

@@ -5,10 +5,23 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
+class RegulationCountry(str, Enum):
+    EU = "EU"
+    UK = "UK"
+    US = "US"
+
+
+REGULATION_COUNTRIES = {
+    RegulationCountry.EU: "European Union",
+    RegulationCountry.UK: "United Kingdom",
+    RegulationCountry.US: "United States",
+}
+
+
 class ClauseType(str, Enum):
     """Enumeration for regulation clause types."""
 
-    RULE = "R"
+    REGULATION = "R"
     GUIDANCE = "G"
     UNKNOWN = "UNKNOWN"
 
@@ -39,7 +52,7 @@ class RegulationClause(BaseModel):
 
         # Auto-detect from clause_id
         if self.clause_id.endswith(" R"):
-            self.clause_type = ClauseType.RULE
+            self.clause_type = ClauseType.REGULATION
         elif self.clause_id.endswith(" G"):
             self.clause_type = ClauseType.GUIDANCE
         else:
@@ -60,6 +73,9 @@ class DocumentMetadata(BaseModel):
     extraction_date: datetime = Field(
         default_factory=datetime.now, description="When the document was parsed"
     )
+    country: RegulationCountry = Field(
+        ..., description="Country of origin (e.g., 'UK')"
+    )
     additional_info: dict[str, Any] = Field(
         default_factory=dict, description="Additional metadata"
     )
@@ -72,6 +88,9 @@ class ParsedDocument(BaseModel):
         ..., description="Type of document (e.g., 'UK_FCA_CONC')"
     )
     version: str | None = Field(None, description="Document version")
+    country: RegulationCountry = Field(
+        ..., description="Country of origin (e.g., 'UK')"
+    )
     clauses: list[RegulationClause] = Field(
         default_factory=list, description="Extracted regulation clauses"
     )
@@ -89,6 +108,56 @@ class ParsedDocument(BaseModel):
     def get_sections(self) -> list[str]:
         """Get list of all unique sections in the document."""
         return list(set(clause.section for clause in self.clauses))
+
+
+class ClauseDocument:
+    """Simple wrapper for clause data for embeddings."""
+
+    def __init__(self, clause: RegulationClause, document: "ParsedDocument"):
+        self.content: str = clause.content
+        self.section: str = clause.section
+        self.clause_id: str = clause.clause_id
+        self.document_type: str = document.document_type
+        self.version: str | None = document.version
+        self.country: RegulationCountry = document.country
+        self.metadata: DocumentMetadata = document.metadata
+
+
+class ClauseMetadata(BaseModel):
+    """Metadata for a parsed regulation document."""
+
+    source_file: str = Field(..., description="Path to source file")
+    total_pages: int = Field(..., ge=1, description="Total number of pages in document")
+    sections_extracted: list[str] = Field(
+        default_factory=list, description="List of sections that were extracted"
+    )
+    document_type: str = Field(
+        ..., description="Type of document (e.g., 'UK_FCA_CONC')"
+    )
+    clause: RegulationClause = Field(
+        ..., description="Clause identifier (e.g., '5.2A.1 R')"
+    )
+    parser_version: str | None = Field(None, description="Version of parser used")
+    extraction_date: datetime = Field(
+        default_factory=datetime.now, description="When the document was parsed"
+    )
+    country: RegulationCountry = Field(
+        ..., description="Country of origin (e.g., 'UK')"
+    )
+    additional_info: dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata"
+    )
+
+
+class ClauseQuestionDocument:
+    """Simple wrapper for clause data for embeddings."""
+
+    def __init__(
+        self, question: str, clause: RegulationClause, metadata: "ClauseMetadata"
+    ):
+        self.question: str = question
+        self.country: RegulationCountry = document.country
+        self.metadata: ClauseMetadata = document.metadata
 
 
 class ParserConfig(BaseModel):

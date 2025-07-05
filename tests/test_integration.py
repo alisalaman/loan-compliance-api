@@ -66,7 +66,7 @@ class TestIntegration:
         assert sample_clause.content is not None
         assert sample_clause.page_number > 0
         assert sample_clause.clause_type in [
-            ClauseType.RULE,
+            ClauseType.REGULATION,
             ClauseType.GUIDANCE,
             ClauseType.UNKNOWN,
         ]

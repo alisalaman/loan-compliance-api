@@ -3,7 +3,12 @@ from pathlib import Path
 
 import pdfplumber
 
-from regulations.models import DocumentMetadata, ParsedDocument, RegulationClause
+from regulations.models import (
+    DocumentMetadata,
+    ParsedDocument,
+    RegulationClause,
+    RegulationCountry,
+)
 from regulations.parsers.base import BaseRegulationParser
 
 
@@ -82,6 +87,7 @@ class EUEBAGl202006Parser(BaseRegulationParser):
             total_pages=len(pages_content),
             sections_extracted=list(sections_to_extract.keys()),
             parser_version=self.VERSION,
+            country=RegulationCountry.EU,
             additional_info={
                 "start_page": self.config.pdf_start_page,
                 "x_tolerance": self.config.pdf_x_tolerance,
@@ -94,6 +100,7 @@ class EUEBAGl202006Parser(BaseRegulationParser):
         return ParsedDocument(
             document_type="EU_EBA_GL_2020_06",
             version=self.VERSION,
+            country=RegulationCountry.EU,
             clauses=all_clauses,
             metadata=metadata,
         )

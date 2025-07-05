@@ -35,7 +35,7 @@ class TestRegulationClause:
 
         assert clause.section == "7.1"
         assert clause.clause_id == "7.1.1 R"
-        assert clause.clause_type == ClauseType.RULE  # Auto-detected from 'R'
+        assert clause.clause_type == ClauseType.REGULATION  # Auto-detected from 'R'
         assert clause.content == "A firm must establish and maintain arrangements."
         assert clause.page_number == 156
 
@@ -44,7 +44,7 @@ class TestRegulationClause:
         rule_clause = RegulationClause(
             section="7.1", clause_id="7.1.1 R", content="Rule content", page_number=1
         )
-        assert rule_clause.clause_type == ClauseType.RULE
+        assert rule_clause.clause_type == ClauseType.REGULATION
 
         guidance_clause = RegulationClause(
             section="7.1",

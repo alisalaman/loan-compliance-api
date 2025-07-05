@@ -3,7 +3,12 @@ from pathlib import Path
 
 import pdfplumber
 
-from regulations.models import DocumentMetadata, ParsedDocument, RegulationClause
+from regulations.models import (
+    DocumentMetadata,
+    ParsedDocument,
+    RegulationClause,
+    RegulationCountry,
+)
 from regulations.parsers.base import BaseRegulationParser
 
 
@@ -78,6 +83,7 @@ class UKFCACoNCParser(BaseRegulationParser):
             total_pages=len(pages_content),
             sections_extracted=list(sections_to_extract.keys()),
             parser_version=self.VERSION,
+            country=RegulationCountry.UK,
             additional_info={
                 "start_page": self.config.pdf_start_page,
                 "x_tolerance": self.config.pdf_x_tolerance,
@@ -88,6 +94,7 @@ class UKFCACoNCParser(BaseRegulationParser):
         return ParsedDocument(
             document_type="UK_FCA_CONC",
             version=self.VERSION,
+            country=RegulationCountry.UK,
             clauses=all_clauses,
             metadata=metadata,
         )

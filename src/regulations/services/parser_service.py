@@ -2,8 +2,8 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
-from ..models import ParsedDocument, ParserConfig
-from ..parsers.factory import ParserFactory
+from regulations.models import ParsedDocument, ParserConfig
+from regulations.parsers.factory import ParserFactory
 
 logger = logging.getLogger(__name__)
 

@@ -3,7 +3,13 @@ from pathlib import Path
 
 import pdfplumber
 
-from regulations.models import DocumentMetadata, ParsedDocument, RegulationClause
+from regulations.models import (
+    DocumentMetadata,
+    ParsedDocument,
+    RegulationClause,
+    REGULATION_COUNTRIES,
+    RegulationCountry,
+)
 from regulations.parsers.base import BaseRegulationParser
 
 
@@ -87,6 +93,7 @@ class UKFCAFg21Parser(BaseRegulationParser):
             total_pages=len(pages_content),
             sections_extracted=list(sections_to_extract.keys()),
             parser_version=self.VERSION,
+            country=RegulationCountry.UK,
             additional_info={
                 "start_page": self.config.pdf_start_page,
                 "x_tolerance": self.config.pdf_x_tolerance,
@@ -99,6 +106,7 @@ class UKFCAFg21Parser(BaseRegulationParser):
         return ParsedDocument(
             document_type="UK_FCA_FG21",
             version=self.VERSION,
+            country=RegulationCountry.UK,
             clauses=all_clauses,
             metadata=metadata,
         )
